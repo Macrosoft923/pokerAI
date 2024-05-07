@@ -30,7 +30,7 @@ class PlayingCard:
         ]
 
     @timeout_decorator.timeout(5)
-    def getCard(self):
+    def getCard(self, cards):
         """
         ランダムにカードを取得します。
 
@@ -39,7 +39,7 @@ class PlayingCard:
         """
         card = []
 
-        while len(card) == 0:
+        while len(card) < cards:
             suit = random.randint(0, 3)
             number = random.randint(0, 12)
 
