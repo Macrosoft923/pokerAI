@@ -1,7 +1,7 @@
 from PlayingCard import PlayingCard
 
 playingcard = PlayingCard()
-dealerhands, playerhands = playingcard.getPokerHands(10)
+dealercards, playerhands = playingcard.getPokerHands(10)
 
-print(dealerhands)
+print(dealercards)
 print(playerhands)
