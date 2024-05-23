@@ -71,13 +71,27 @@ class PlayingCard:
             N (int): 引くカードの人数
 
         Returns:
-            dealerhands (list): ディーラーの手札を表すカードのリスト
+            dealercards (list): ディーラーの手札を表すカードのリスト
             playerhands (ndarray): プレイヤーの手札を表す4次元配列
         """
         # ディーラーの手札として5枚のカードを取得
-        dealerhands = self.getCards(5)
+        dealercards = self.getCards(5)
         # プレイヤーの手札を保存するための4次元配列を作成
         playerhands = np.zeros((N, 4, 13))
+
+        for i in range(N):
+            for dealercard in dealercards:
+                # カード番号をスートとランクに分解
+                suit = dealercard // 13
+                number = dealercard % 13
+
+                for j in range(4):
+                    for k in range(13):
+                        # 該当するスートとランクの位置に1を設定
+                        if j == suit and k == number:
+                            playerhands[i, j, k] = 1
+                        else:
+                            continue
 
         for i in range(N):
             # 各プレイヤーに2枚のカードを配布
@@ -96,4 +110,4 @@ class PlayingCard:
                         else:
                             continue
 
-        return dealerhands, playerhands
+        return dealercards, playerhands

@@ -33,4 +33,6 @@ for i in range(4):
 			playerA[i].append(0)
 	print (playerA[i])
 
-
+from judclass2 import Judge
+tnk = Judge(playerA)
+print(tnk.judgement(playerA))
