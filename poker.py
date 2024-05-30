@@ -39,7 +39,7 @@ while pre_flop:
             continue
 
         if chips[player] < max_bet:
-            action = "FOLD"
+             action = "FOLD"
         else:
             action = random.choices(["CALL", "RAISE", "FOLD"], weights=[1, 1, 6])[0]
 
