@@ -1,9 +1,17 @@
 import random
 import time
 
-# players = int(input())
+MIN_PLAYERS = 5
+MAX_PLAYERS = 10
+# players = int(input("Please enter players: "))
 # players = random.randint(2, 10)
-players = random.randint(5, 10)
+players = random.randint(MIN_PLAYERS, MAX_PLAYERS)
+# while True:
+#     my_player = int(input("Please enter your player: "))
+
+#     if MIN_PLAYERS <= players <= MAX_PLAYERS:
+#         break
+my_player = 4
 
 dealer = random.randint(0, players - 1)
 winner = None
@@ -22,7 +30,7 @@ chips[big_blind] -= 2
 fold = [False] * players
 
 print(
-    f"players: {players}, dealer: {dealer}, small_blind: {small_blind}, big_blind: {big_blind}"
+    f"players: {players}, your player: {my_player}, dealer: {dealer}, small_blind: {small_blind}, big_blind: {big_blind}"
 )
 print(bets)
 print(fold)
@@ -38,10 +46,30 @@ while pre_flop:
         if fold[player]:
             continue
 
-        if chips[player] < max_bet:
-            action = "FOLD"
-        else:
-            action = random.choices(["CALL", "RAISE", "FOLD"], weights=[1, 1, 6])[0]
+        # if player == my_player:
+        #     if chips[player] < max_bet:
+        #         action = "FOLD"
+        #         break
+
+        #     while True:
+        #         action = str(input("Please enter action: "))
+
+        #         if action in ["CALL", "RAISE", "FOLD"]:
+        #             break
+        # else:
+        #     if chips[player] < max_bet:
+        #         action = "FOLD"
+        #     else:
+        #         action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[
+        #             0
+        #         ]
+
+        # if chips[player] < max_bet:
+        #     action = "FOLD"
+        # else:
+        #     action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
+
+        action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
 
         if action == "CALL":
             bet = max_bet - bets[player]
@@ -49,7 +77,16 @@ while pre_flop:
             chips[player] -= bet
 
         if action == "RAISE":
-            bet = random.randint(max_bet - bets[player] + 1, chips[player])
+            # if player == my_player:
+            #     while True:
+            #         bet = int(input("Please enter bet: "))
+
+            #         if max_bet * 2 - bets[player] <= bet <= chips[player]:
+            #             break
+            # else:
+            #     bet = random.randint(max_bet * 2 - bets[player], chips[player])
+
+            bet = random.randint(max_bet * 2 - bets[player], chips[player])
             bets[player] += bet
             max_bet = max(bets)
             chips[player] -= bet
