@@ -29,11 +29,12 @@ chips[big_blind] -= 2
 fold = [False] * players
 
 print(
-    f"players: {players}, your player: {my_player}, dealer: {dealer}, small_blind: {small_blind}, big_blind: {big_blind}"
+    f"players : {players}, your player: {my_player}, dealer: {dealer}, small_blind: {small_blind}, big_blind: {big_blind}"
 )
-print(bets)
-print(chips)
-print(fold)
+
+print(f"bets    : {bets}")
+print(f"chips   : {chips}")
+print(f"fold    : {fold}")
 
 print()
 print()
@@ -54,8 +55,6 @@ while pre_flop:
                     break
         else:
             action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
-
-        action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
 
         while True:
             if action == "CALL":
@@ -102,12 +101,12 @@ while pre_flop:
             pre_flop = False
 
         print(
-            f"player: {player}, action: {action}, bet: {bet}, max_bet: {max_bet}, chips[player]: {chips[player]}"
+            f"player  : {player}, action: {action}, bet: {bet}, max_bet: {max_bet}, chips[player]: {chips[player]}"
         )
 
-        print(bets)
-        print(chips)
-        print(fold)
+        print(f"bets    : {bets}")
+        print(f"chips   : {chips}")
+        print(f"fold    : {fold}")
 
         print()
 
