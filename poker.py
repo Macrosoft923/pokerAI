@@ -6,16 +6,16 @@ MAX_PLAYERS = 10
 # players = random.randint(2, 10)
 players = random.randint(MIN_PLAYERS, MAX_PLAYERS)
 while True:
-    my_player = int(input("Please enter your player: "))
+    my_player = int(input("Please enter your player number: "))
 
     if 0 <= my_player <= players - 1:
         break
 # my_player = 4
 
-dealer = random.randint(0, players - 1)
+button = random.randint(0, players - 1)
 winner = None
-small_blind = (dealer + 1) % players
-big_blind = (dealer + 2) % players
+small_blind = (button + 1) % players
+big_blind = (button + 2) % players
 
 bets = [0] * players
 bets[small_blind] = 1
@@ -26,30 +26,32 @@ chips = [200] * players
 chips[small_blind] -= 1
 chips[big_blind] -= 2
 
-fold = [False] * players
+folded = [False] * players
 
 print(
-    f"players : {players}, your player: {my_player}, dealer: {dealer}, small_blind: {small_blind}, big_blind: {big_blind}"
+    f"info    : players: \033[31m{players}\033[0m, your player number: \033[31m{my_player}\033[0m, button: \033[31m{button}\033[0m, small blind: \033[31m{small_blind}\033[0m, big blind: \033[31m{big_blind}\033[0m"
 )
 
 print(f"bets    : {bets}")
 print(f"chips   : {chips}")
-print(f"fold    : {fold}")
+print(f"folded  : {folded}")
 
 print()
 print()
 
 pre_flop = True
+closed_count = 0
+
 while pre_flop:
     for player in range(players):
-        player = (player + dealer + 3) % players
+        player = (player + button + 3) % players
 
-        if fold[player]:
+        if folded[player]:
             continue
 
         if player == my_player:
             while True:
-                action = str(input("Please enter action: "))
+                action = str(input("Please enter your action: "))
 
                 if action in ["CALL", "RAISE", "FOLD"]:
                     break
@@ -61,21 +63,19 @@ while pre_flop:
                 bet = max_bet - bets[player]
                 bets[player] += bet
                 chips[player] -= bet
+                closed_count += 1
                 break
 
-            elif action == "RAISE" and chips[player] < max_bet:
+            elif action == "RAISE" and max_bet * 2 - bets[player] > chips[player]:
                 action = "ALL-IN"
                 bet = chips[player]
                 bets[player] += bet
                 max_bet = max(bets)
                 chips[player] -= bet
+                closed_count = 0
                 break
 
-            elif action == "RAISE" and chips[player] >= max_bet:
-                if max_bet * 2 - bets[player] > chips[player]:
-                    action = "CALL"
-                    break
-
+            elif action == "RAISE" and max_bet * 2 - bets[player] <= chips[player]:
                 if player == my_player:
                     while True:
                         bet = int(input("Please enter bet: "))
@@ -88,31 +88,38 @@ while pre_flop:
                 bets[player] += bet
                 max_bet = max(bets)
                 chips[player] -= bet
+                closed_count = 0
                 break
 
             elif action == "FOLD":
                 bet = 0
                 bets[player] = bet
-                fold[player] = True
+                folded[player] = True
                 break
 
-        if fold.count(False) == 1:
-            winner = fold.index(False)
+        if folded.count(False) == closed_count - 1:
+            print("closed 1")
+            pre_flop = False
+
+        if folded.count(False) == 1:
+            print("winner")
+            winner = folded.index(False)
             pre_flop = False
 
         print(
-            f"player  : {player}, action: {action}, bet: {bet}, max_bet: {max_bet}, chips[player]: {chips[player]}"
+            f"info    : player: \033[31m{player}\033[0m, action: \033[31m{action}\033[0m, bet: \033[31m{bet}\033[0m, max_bet: \033[31m{max_bet}\033[0m, chips[player]: \033[31m{chips[player]}\033[0m"
         )
 
         print(f"bets    : {bets}")
         print(f"chips   : {chips}")
-        print(f"fold    : {fold}")
+        print(f"folded  : {folded}")
 
         print()
 
         # time.sleep(1)
 
-    if bets.count(max_bet) == fold.count(False):
+    if folded.count(False) == closed_count - 1:
+        print("closed 2")
         pre_flop = False
 
     print()
