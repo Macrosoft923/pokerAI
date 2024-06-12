@@ -23,6 +23,7 @@ chips[small_blind] -= 1
 chips[big_blind] -= 2
 
 folded = [False] * players
+allined = [False] * players
 
 lastraise = -1
 
@@ -72,6 +73,7 @@ while pre_flop:
                     bet = max_bet - bets[player]
                     bets[player] += bet
                     chips[player] -= bet
+                    allined[player] = True
                 else:
                     bet = max_bet - bets[player]
                     bets[player] += bet
@@ -89,6 +91,7 @@ while pre_flop:
                     max_bet = max(bets)
                     chips[player] -= bet
                     lastraise = player
+                    allined[player] = True
                     break
                 else:
                     action = "ALL-IN CALL"
@@ -96,6 +99,7 @@ while pre_flop:
                     bets[player] += bet
                     max_bet = max(bets)
                     chips[player] -= bet
+                    allined[player] = True
                     break
 
             elif action == "RAISE" and max_bet * 2 - bets[player] <= chips[player]:
@@ -109,6 +113,7 @@ while pre_flop:
                     bet = random.randint(max_bet * 2 - bets[player], chips[player])
                     if bet == chips[player]:
                         action = "RAISE ALL-IN"
+                        allined[player] = True
 
                 bets[player] += bet
                 max_bet = max(bets)
@@ -158,12 +163,22 @@ while postflop:
             hvcehck = 0
             postflop +=1
             hvbet = False
+            if postflop == 2:
+                print("flop finish")
+                print()
+            elif postflop == 3:
+                print("turn finish")
+                print()
             if postflop == 4:
                 postflop = False
                 break
         if folded[player]:
             continue
 
+        if sum(allined) == players - sum(folded) or sum(allined) == players - sum(folded)-1:
+            print("みんなオール・イン")
+            postflop = False
+            break
         if player == my_player:
             while True:
                 action = str(input("Please enter your action: "))
@@ -191,6 +206,7 @@ while postflop:
                     bet = max_bet - bets[player]
                     bets[player] += bet
                     chips[player] -= bet
+                    allined[player] = True
                 else:
                     bet = max_bet - bets[player]
                     bets[player] += bet
@@ -208,11 +224,13 @@ while postflop:
                     max_bet = max(bets)
                     chips[player] -= bet
                     lastraise = player
+                    allined[player] = True
                 else:
                     action = "ALL-IN CALL"
                     bet = max_bet - bets[player]
                     bets[player] += bet
                     chips[player] -= bet
+                    allined[player] = True
                 break
 
 
@@ -246,6 +264,7 @@ while postflop:
                             break
                         elif bet == chips[player]:
                             action == "ALL-in"
+                            allined[player] = True
                             break
                 else:
                     bet = random.randint(1,chips[player])
@@ -270,6 +289,7 @@ while postflop:
         print(f"bets    : {bets}")
         print(f"chips   : {chips}")
         print(f"folded  : {folded}")
+        print(f"aaaa  : {allined}")
 
 
         print()
