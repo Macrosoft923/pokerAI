@@ -28,6 +28,8 @@ chips[big_blind] -= 2
 
 folded = [False] * players
 
+lastraise = -1
+
 print(
     f"info    : players: \033[31m{players}\033[0m, your player number: \033[31m{my_player}\033[0m, button: \033[31m{button}\033[0m, small blind: \033[31m{small_blind}\033[0m, big blind: \033[31m{big_blind}\033[0m"
 )
@@ -42,10 +44,13 @@ print()
 pre_flop = True
 closed_count = 0
 
+
 while pre_flop:
     for player in range(players):
         player = (player + button + 3) % players
-
+        if lastraise == player:
+            pre_flop = False
+            break
         if folded[player]:
             continue
 
@@ -64,6 +69,9 @@ while pre_flop:
                 bets[player] += bet
                 chips[player] -= bet
                 closed_count += 1
+                if bet == 0:
+                    action = "CHECK"
+                    pre_flop = False
                 break
 
             elif action == "RAISE" and max_bet * 2 - bets[player] > chips[player]:
@@ -73,6 +81,7 @@ while pre_flop:
                 max_bet = max(bets)
                 chips[player] -= bet
                 closed_count = 0
+                lastraise = player
                 break
 
             elif action == "RAISE" and max_bet * 2 - bets[player] <= chips[player]:
@@ -89,14 +98,14 @@ while pre_flop:
                 max_bet = max(bets)
                 chips[player] -= bet
                 closed_count = 0
+                lastraise = player
                 break
 
             elif action == "FOLD":
-                bet = 0
-                bets[player] = bet
                 folded[player] = True
                 break
 
+        
         if folded.count(False) == closed_count - 1:
             print("closed 1")
             pre_flop = False
