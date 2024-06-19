@@ -57,7 +57,7 @@ def play_game():
         # else:
         #     action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
 
-        action = random.choices(["CALL", "RAISE", "FOLD"], weights=[1, 2, 10])[0]
+        action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
 
         if action == "CALL":
             bet = max_bet - bets[player]
@@ -142,7 +142,6 @@ def play_game_stage(stage_name):
 pre_flop = True
 play_game_stage("Pre-Flop")
 
-# フロップ、ターン、リバーラウンドの進行
 if not winner:
     play_game_stage("Flop")
 
@@ -152,5 +151,4 @@ if not winner:
 if not winner:
     play_game_stage("River")
 
-# 勝者の表示
 print(f"winner: {winner}")
