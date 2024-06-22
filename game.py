@@ -1,154 +1,260 @@
+import numpy as np
 import random
+import time
 
-MIN_PLAYERS = 5
+MIN_PLAYERS = 2
 MAX_PLAYERS = 10
-POINTS = 200
+players = (MIN_PLAYERS + MAX_PLAYERS) // 2
 
-players = random.randint(MIN_PLAYERS, MAX_PLAYERS)
-# gamer = random.randint(0, players - 1)
-button = random.randint(0, players - 1)
+ACTIVE_PLAYERS = np.ones(players, dtype=bool)
 
+BUTTON = random.randint(0, players - 1)
 winner = None
 
-small_blind = (button + 1) % players
-big_blind = (button + 2) % players
+MIN_BET = 40
+POT = 0
 
-bets = [0] * players
-bets[small_blind] = 1
-bets[big_blind] = 2
-max_bet = 2
+SUITS = ("♠", "♣", "♢", "♡")
+NUMBERS = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
+cards = np.ones((4, 13))
 
-banks = [POINTS] * players
-banks[small_blind] -= 1
-banks[big_blind] -= 2
+CARDS_COMMUNITY = np.zeros((4, 13))
+CARDS_HOLE = np.zeros((players, 4, 13))
 
-folded = [False] * players
 
-print(
-    f"info    : players: \033[31m{players}\033[0m, your player number: \033[31m[gamer]\033[0m, button: \033[31m{button}\033[0m, small blind: \033[31m{small_blind}\033[0m, big blind: \033[31m{big_blind}\033[0m"
-)
-print(f"bets    : {bets}")
-print(f"banks   : {banks}")
-print(f"folded  : {folded}")
+def isclosed(active_players, pots, stacks):
+    if np.count_nonzero(active_players) == 0:
+        return True
+    if all(
+        [
+            pot == pots[active_players][0] and pots[active_players][0] != 0
+            for pot in pots[active_players]
+        ]
+    ):
+        return True
+    if all([stack == 0 for stack in stacks[active_players]]):
+        return True
 
+
+print("=" * 100)
 print()
-print("-" * 90)
+print("Welcome to Texas hold 'em.py")
+print()
+print("-" * 100)
 print()
 
+ROUNDS_KEY = ("PRE_FLOP", "FLOP", "TURN", "RIVER")
+ROUNDS_VALUE = np.zeros(4, dtype=bool)
+ROUNDS_VALUE[0] = True
 
-def play_game():
-    global pre_flop, last_raise, closed_count, max_bet, winner
+for i in range(4):
+    button = (BUTTON + i) % players
+    blind_small = (button + 1) % players
+    blind_big = (button + 2) % players
 
-    for i in range(players):
-        player = (i + button + 3) % players
+    if ROUNDS_KEY[i] == "PRE_FLOP":
+        pots = np.zeros(players, dtype=np.int64)
+        pots[blind_small] += MIN_BET // 2
+        pots[blind_big] += MIN_BET
 
-        if last_raise == player:
-            return False
+        stacks = np.ones(players, dtype=np.int64) * MIN_BET * 100
+        stacks[blind_small] -= MIN_BET // 2
+        stacks[blind_big] -= MIN_BET
 
-        if folded[player]:
-            continue
+        for j in range(players):
+            while np.count_nonzero(CARDS_HOLE[j]) < 2:
+                suit = random.randint(0, 3)
+                number = random.randint(0, 12)
 
-        # if player == gamer:
-        #     while True:
-        #         action = str(input("Please enter your action: "))
+                if cards[suit, number] == 1:
+                    CARDS_HOLE[j, suit, number] = 1
+                    cards[suit, number] == 0
 
-        #         if action in ["CALL", "RAISE", "FOLD"]:
-        #             break
-        # else:
-        #     action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
+    elif ROUNDS_KEY[i] == "FLOP":
+        pots = np.zeros(players, dtype=int)
 
-        action = random.choices(["CALL", "RAISE", "FOLD"], weights=[10, 2, 1])[0]
+        while np.count_nonzero(CARDS_COMMUNITY) < 3:
+            suit = random.randint(0, 3)
+            number = random.randint(0, 12)
 
-        if action == "CALL":
-            bet = max_bet - bets[player]
-            bets[player] += bet
-            banks[player] -= bet
-            closed_count += 1
+            if cards[suit, number] == 1:
+                CARDS_COMMUNITY[suit, number] = 1
+                cards[suit, number] == 0
 
-            if bet == 0:
-                action = "CHECK"
-                return False
+    elif ROUNDS_KEY[i] == "TURN":
+        pots = np.zeros(players, dtype=int)
 
-        elif action == "RAISE" and banks[player] < max_bet * 2 - bets[player]:
-            action = "ALL-IN"
-            bet = banks[player]
-            bets[player] += bet
-            max_bet = max(bets)
-            banks[player] -= bet
-            closed_count = 0
-            last_raise = player
+        while np.count_nonzero(CARDS_COMMUNITY) < 4:
+            suit = random.randint(0, 3)
+            number = random.randint(0, 12)
 
-        elif action == "RAISE" and banks[player] >= max_bet * 2 - bets[player]:
-            # if player == gamer:
-            #     while True:
-            #         bet = int(input("Please enter bet: "))
+            if cards[suit, number] == 1:
+                CARDS_COMMUNITY[suit, number] = 1
+                cards[suit, number] == 0
 
-            #         if max_bet * 2 - bets[player] <= bet <= banks[player]:
-            #             break
-            # else:
-            #     bet = random.randint(max_bet * 2 - bets[player], banks[player])
+    else:
+        pots = np.zeros(players, dtype=int)
 
-            bet = random.randint(max_bet * 2 - bets[player], banks[player])
-            bets[player] += bet
-            max_bet = max(bets)
-            banks[player] -= bet
-            closed_count = 0
-            last_raise = player
+        while np.count_nonzero(CARDS_COMMUNITY) < 5:
+            suit = random.randint(0, 3)
+            number = random.randint(0, 12)
 
-        else:
-            bet = 0
-            folded[player] = True
+            if cards[suit, number] == 1:
+                CARDS_COMMUNITY[suit, number] = 1
+                cards[suit, number] == 0
 
-        print(
-            f"info    : player: \033[31m{player}\033[0m, action: \033[31m{action}\033[0m, bet: \033[31m{bet}\033[0m, max_bet: \033[31m{max_bet}\033[0m, banks[{player}]: \033[31m{banks[player]}\033[0m"
-        )
-        print(f"bets    : {bets}")
-        print(f"banks   : {banks}")
-        print(f"folded  : {folded}")
+    min_bet = min(pots)
+    max_bet = max(pots)
+    sum_bet = sum(pots)
+
+    print(
+        f"information\t:round:\033[34m{ROUNDS_KEY[i]}\033[0m, players:\033[32m{players}\033[0m, button:\033[32m{button}\033[0m, small blind:\033[32m{blind_small}\033[0m, big blind:\033[32m{blind_big}\033[0m, pot:\033[32m{POT}\033[0m"
+    )
+    print(f"pots\t\t:{pots}")
+    print(f"stacks\t\t:{stacks}")
+    print(f"active players\t:{ACTIVE_PLAYERS}")
+    print()
+
+    if ROUNDS_KEY[i] == "PRE_FLOP":
+        for j in range(players):
+            for k in range(4):
+                if j == 0 and k == 0:
+                    print(f"hole cards\t:{CARDS_HOLE[0][0]}")
+                else:
+                    print(f"\t\t:{CARDS_HOLE[j][k]}")
+
+            print()
+
+    else:
+        for j in range(4):
+            if j == 0:
+                print(f"community cards\t:{CARDS_COMMUNITY[0]}")
+            else:
+                print(f"\t\t:{CARDS_COMMUNITY[j]}")
 
         print()
 
-        if folded.count(False) == closed_count - 1:
-            pre_flop = False
-            return False
+    while ROUNDS_VALUE[i]:
+        for j in range(players):
+            player = (j + button + 3) % players
 
-        if folded.count(False) == 1:
-            winner = folded.index(False)
-            pre_flop = False
-            return False
+            betting_options = np.empty(0, dtype=str)
+            betting_options = np.append(betting_options, "FOLD")
 
-    return True
+            if i < 3 and isclosed(ACTIVE_PLAYERS, pots, stacks):
+                ROUNDS_VALUE[i] = False
+                ROUNDS_VALUE[i + 1] = True
+                POT += sum_bet
+                break
 
+            elif i == 3 and isclosed(ACTIVE_PLAYERS, pots, stacks):
+                ROUNDS_VALUE[i] = False
+                POT += sum_bet
+                break
 
-def play_game_stage(stage_name):
-    global last_raise, closed_count, max_bet
-    print(f"STAGE  : {stage_name}")
+            if not ACTIVE_PLAYERS[player]:
+                continue
+
+            if min_bet == max_bet:
+                betting_options = np.append(betting_options, "CHECK")
+
+            if min_bet != max_bet:
+                betting_options = np.append(betting_options, "CALL")
+
+            if np.count_nonzero(pots) == 0:
+                betting_options = np.append(betting_options, "BET")
+
+            if np.count_nonzero(pots) != 0:
+                betting_options = np.append(betting_options, "RAISE")
+
+            betting_option = random.choices(betting_options)[0]
+
+            if betting_option == "CHECK":
+                bet = 0
+                pots[player] += bet
+                stacks[player] -= bet
+
+            elif betting_option == "CALL" and max_bet - pots[player] < stacks[player]:
+                bet = max_bet - pots[player]
+                pots[player] += bet
+                stacks[player] -= bet
+
+            elif betting_option == "CALL":
+                ACTIVE_PLAYERS[player] = False
+                betting_option = "ALL_IN"
+                bet = stacks[player] - pots[player]
+                pots[player] += bet
+                stacks[player] -= bet
+
+            elif betting_option == "BET":
+                bet = MIN_BET
+                pots[player] += bet
+                stacks[player] -= bet
+
+            elif betting_option == "RAISE" and (
+                (2 * max_bet - pots[player])
+                < 2 * max_bet + sum_bet - pots[player]
+                < stacks[player]
+            ):
+                bet = random.randrange(
+                    2 * max_bet - pots[player],
+                    2 * max_bet + sum_bet - pots[player],
+                    5,
+                )
+                pots[player] += bet
+                stacks[player] -= bet
+
+            elif betting_option == "RAISE":
+                ACTIVE_PLAYERS[player] = False
+                betting_option = "ALL_IN"
+                bet = stacks[player] - pots[player]
+                pots[player] += bet
+                stacks[player] -= bet
+
+            else:
+                ACTIVE_PLAYERS[player] = False
+                bet = 0
+                pots[player] += bet
+                stacks[player] -= bet
+
+            min_bet = min(pots)
+            max_bet = max(pots)
+            sum_bet = sum(pots)
+
+            print(
+                f"information\t:player:\033[31m{player}\033[0m, betting option:\033[31m{betting_option}\033[0m, bet:\033[31m{bet}\033[0m, min bet:\033[31m{min_bet}\033[0m, max bet:\033[31m{max_bet}\033[0m, sum bet:\033[31m{sum_bet}\033[0m"
+            )
+            print(f"betting options\t:{betting_options}")
+            print(f"pots\t\t:{pots}")
+            print(f"stacks\t\t:{stacks}")
+            print(f"active players\t:{ACTIVE_PLAYERS}")
+            print()
+
+            if np.count_nonzero(ACTIVE_PLAYERS) == 1:
+                winner = np.arange(players)[ACTIVE_PLAYERS][0]
+                ROUNDS_VALUE[i] = False
+                break
+
+    # このゲームの目的は、ポット（pot, 全員の賭け金を集めたもの）を獲得することにある。ポットを獲得するためには、ショーダウンの際に最も強い5枚のカードを持つか、中途のベットラウンドにおいて他のプレイヤーを勝負から降ろす（フォルドさせる）必要がある。
+
+    if ROUNDS_KEY[i] == "RIVER":
+        CARDS_HOLE += CARDS_COMMUNITY
+
+        for j in range(players):
+            SUM_SUITS = np.sum(CARDS_HOLE[j], axis=1)
+            SUM_NUMBERS = np.sum(CARDS_HOLE[j], axis=0)
+
+            print(f"sum suits[{j}]\t:{SUM_SUITS}")
+            print(f"sum numbers[{j}]\t:{SUM_NUMBERS}")
+            print()
+
+    print("-" * 100)
     print()
-    print("-" * 90)
-    print()
-    stage_active = True
-    last_raise = -1
-    closed_count = 0
-
-    while stage_active:
-        stage_active = play_game()
-
-    print("-" * 90)
-    print()
-    print(f"End of {stage_name}")
-    print()
 
 
-pre_flop = True
-play_game_stage("Pre-Flop")
+print(f"winner\t\t:{winner}")
+print(f"pot\t\t:{POT}")
+print(f"active players\t:{ACTIVE_PLAYERS}")
 
-if not winner:
-    play_game_stage("Flop")
-
-if not winner:
-    play_game_stage("Turn")
-
-if not winner:
-    play_game_stage("River")
-
-print(f"winner: {winner}")
+print()
+print("=" * 100)
