@@ -22,6 +22,8 @@ LEN_NUMBERS = len(NUMBERS)
 cards = np.ones((LEN_SUITS, LEN_NUMBERS), dtype=int)
 CARDS_COMMUNITY = np.zeros((LEN_SUITS, LEN_NUMBERS), dtype=int)
 CARDS_HOLE = np.zeros((players, LEN_SUITS, LEN_NUMBERS), dtype=int)
+SUM_CARDS_COMMUNITY = 3
+SUM_CARDS_HOLE = 2
 
 POKER_HANDS = (
     "STRAIGHT_FLUSH",
@@ -39,6 +41,7 @@ POKER_HANDS = (
 def isclosed(active_players, bets, stacks):
     if np.count_nonzero(active_players) < 2:
         return True
+
     if all(
         [
             bet == bets[active_players][0] and bets[active_players][0] != 0
@@ -46,20 +49,79 @@ def isclosed(active_players, bets, stacks):
         ]
     ):
         return True
+
     if all([stack == 0 for stack in stacks[active_players]]):
         return True
 
 
 def getpokerhands(cards):
+    poker_hand = 8
     sum_suits = np.sum(cards, axis=1)
     sum_numbers = np.sum(cards, axis=0)
 
+    isonepair = False
+    istwopair = False
+    isthreeofakind = False
+    isfourofakind = False
 
-print("=" * 100)
+    def isflush(sum_suits):
+        for i in range(SUM_CARDS_COMMUNITY + SUM_CARDS_HOLE + 1):
+            if np.count_nonzero(sum_suits == i) > 4:
+                return True
+
+    def isstraight(sum_numbers):
+        sum_sequential = 0
+
+        for i in range(LEN_NUMBERS - 1):
+            if sum_numbers[i] > 0 and sum_numbers[i + 1] > 0:
+                sum_sequential += 1
+            else:
+                sum_sequential = 0
+
+            if sum_sequential > 3:
+                return True
+
+    for i in range(2, LEN_SUITS + 1):
+        for j in range(1, (SUM_CARDS_COMMUNITY + SUM_CARDS_HOLE) // i):
+            if np.count_nonzero(sum_numbers == i) == j:
+                if i == 2 and j == 1:
+                    isonepair = True
+                elif i == 2:
+                    isonepair = False
+                    istwopair = True
+
+                if i == 3:
+                    isthreeofakind = True
+
+                if i == 4:
+                    isfourofakind = True
+
+    if isonepair:
+        poker_hand = 7
+    elif istwopair:
+        poker_hand = 6
+
+    if isthreeofakind:
+        poker_hand = 5
+
+    if isfourofakind:
+        poker_hand = 1
+
+    if isflush(sum_suits) and isstraight(sum_numbers):
+        poker_hand = 0
+    elif isflush(sum_suits):
+        poker_hand = 3
+    elif isstraight(sum_numbers):
+        poker_hand = 4
+
+    return poker_hand
+
+
+print("=" * 90)
 print()
 print("Welcome to Texas hold 'em.py")
 print()
-print("-" * 100)
+print("-" * 90)
 print()
 
 ROUNDS_KEY = ("PRE_FLOP", "FLOP", "TURN", "RIVER")
@@ -84,7 +146,7 @@ for i in range(LEN_ROUNDS_KEY):
         stacks[blind_big] -= MIN_BET
 
         for j in range(players):
-            while np.count_nonzero(CARDS_HOLE[j]) < 2:
+            while np.count_nonzero(CARDS_HOLE[j]) < SUM_CARDS_HOLE:
                 suit = random.randint(0, 3)
                 number = random.randint(0, 12)
 
@@ -95,18 +157,20 @@ for i in range(LEN_ROUNDS_KEY):
     elif ROUNDS_KEY[i] == "FLOP":
         bets = np.zeros(players, dtype=int)
 
-        while np.count_nonzero(CARDS_COMMUNITY) < 3:
+        while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
             suit = random.randint(0, 3)
             number = random.randint(0, 12)
 
             if cards[suit, number] == 1:
                 CARDS_COMMUNITY[suit, number] = 1
                 cards[suit, number] = 0
+
+        SUM_CARDS_COMMUNITY += 1
 
     elif ROUNDS_KEY[i] == "TURN":
         bets = np.zeros(players, dtype=int)
 
-        while np.count_nonzero(CARDS_COMMUNITY) < 4:
+        while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
             suit = random.randint(0, 3)
             number = random.randint(0, 12)
 
@@ -114,10 +178,12 @@ for i in range(LEN_ROUNDS_KEY):
                 CARDS_COMMUNITY[suit, number] = 1
                 cards[suit, number] = 0
 
+        SUM_CARDS_COMMUNITY += 1
+
     else:
         bets = np.zeros(players, dtype=int)
 
-        while np.count_nonzero(CARDS_COMMUNITY) < 5:
+        while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
             suit = random.randint(0, 3)
             number = random.randint(0, 12)
 
@@ -258,37 +324,33 @@ for i in range(LEN_ROUNDS_KEY):
     # このゲームの目的は、ポット（pot, 全員の賭け金を集めたもの）を獲得することにある。ポットを獲得するためには、ショーダウンの際に最も強い5枚のカードを持つか、中途のベットラウンドにおいて他のプレイヤーを勝負から降ろす（フォルドさせる）必要がある。
 
     if ROUNDS_KEY[i] == "RIVER":
-        CARDS_HOLE += CARDS_COMMUNITY
-        sum_cards = np.sum(CARDS_HOLE) // players
-
-        print("-" * 100)
+        print("-" * 90)
         print()
 
+        CARDS_HOLE += CARDS_COMMUNITY
+
         for j in range(players):
-            SUM_SUITS = np.sum(CARDS_HOLE[j], axis=1)
-            SUM_NUMBERS = np.sum(CARDS_HOLE[j], axis=0)
-
-            print(f"sum suits[{j}]\t:{SUM_SUITS}")
-            print(f"sum numbers[{j}]\t:{SUM_NUMBERS}")
-            print()
-
-            counter_suits = collections.Counter(SUM_SUITS)
-            counter_numbers = collections.Counter(SUM_NUMBERS)
-
-            for k in range(sum_cards + 1):
-                print(f"suits[{k}]\t:{counter_suits[k]}")
+            for k in range(LEN_SUITS):
+                if j == 0 and k == 0:
+                    print(f"hole cards\t:{CARDS_HOLE[0][0]}")
+                else:
+                    print(f"\t\t:{CARDS_HOLE[j][k]}")
 
             print()
 
-            for k in range(LEN_SUITS + 1):
-                print(f"numbers[{k}]\t:{counter_numbers[k]}")
+        poker_hands = np.empty(0, dtype=str)
 
-            print()
-            print("-" * 100)
-            print()
+        for j in range(players):
+            poker_hands = np.append(
+                poker_hands, POKER_HANDS[getpokerhands(CARDS_HOLE[j])]
+            )
 
-    # print("-" * 100)
-    # print()
+        print(f"players hands\t:{poker_hands}")
+        print(f"active hands\t:{poker_hands[ACTIVE_PLAYERS]}")
+        print()
+
+    print("-" * 90)
+    print()
 
 
 print(f"winner\t\t:{winner}")
@@ -296,4 +358,4 @@ print(f"pots\t\t:{pots}")
 print(f"active players\t:{ACTIVE_PLAYERS}")
 
 print()
-print("=" * 100)
+print("=" * 90)
