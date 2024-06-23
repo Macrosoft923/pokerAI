@@ -7,7 +7,8 @@ MIN_PLAYERS = 2
 MAX_PLAYERS = 10
 players = (MIN_PLAYERS + MAX_PLAYERS) // 2
 
-ACTIVE_PLAYERS = np.ones(players, dtype=bool)
+PLAYERS_ACTIVE = np.ones(players, dtype=bool)
+PLAYERS_ALL_IN = np.zeros(players, dtype=bool)
 
 BUTTON = random.randint(0, players - 1)
 winner = None
@@ -38,19 +39,19 @@ POKER_HANDS = (
 )
 
 
-def isclosed(active_players, bets, stacks):
-    if np.count_nonzero(active_players) < 2:
+def isclosed(PLAYERS_ACTIVE, bets, stacks):
+    if np.count_nonzero(PLAYERS_ACTIVE) < 2:
         return True
 
     if all(
         [
-            bet == bets[active_players][0] and bets[active_players][0] != 0
-            for bet in bets[active_players]
+            bet == bets[PLAYERS_ACTIVE][0] and bets[PLAYERS_ACTIVE][0] != 0
+            for bet in bets[PLAYERS_ACTIVE]
         ]
     ):
         return True
 
-    if all([stack == 0 for stack in stacks[active_players]]):
+    if all([stack == 0 for stack in stacks[PLAYERS_ACTIVE]]):
         return True
 
 
@@ -201,7 +202,8 @@ for i in range(LEN_ROUNDS_KEY):
     print(f"pots\t\t:{pots}")
     print(f"bets\t\t:{bets}")
     print(f"stacks\t\t:{stacks}")
-    print(f"active players\t:{ACTIVE_PLAYERS}")
+    print(f"active players\t:{PLAYERS_ACTIVE}")
+    print(f"all in players\t:{PLAYERS_ALL_IN}")
     print()
 
     if ROUNDS_KEY[i] == "PRE_FLOP":
@@ -228,22 +230,22 @@ for i in range(LEN_ROUNDS_KEY):
             player = (j + button + 3) % players
 
             betting_options = np.empty(0, dtype=str)
-            betting_options = np.append(betting_options, "FOLD")
+            # betting_options = np.append(betting_options, "FOLD")
 
-            if i < 3 and isclosed(ACTIVE_PLAYERS, bets, stacks):
+            if i < 3 and isclosed(PLAYERS_ACTIVE, bets, stacks):
                 ROUNDS_VALUE[i] = False
                 ROUNDS_VALUE[i + 1] = True
-                winner = np.arange(players)[ACTIVE_PLAYERS][0]
+                winner = np.arange(players)[PLAYERS_ACTIVE][0]
                 pots[i] = sum_bet
                 break
 
-            elif i == 3 and isclosed(ACTIVE_PLAYERS, bets, stacks):
+            elif i == 3 and isclosed(PLAYERS_ACTIVE, bets, stacks):
                 ROUNDS_VALUE[i] = False
-                winner = np.arange(players)[ACTIVE_PLAYERS][0]
+                winner = np.arange(players)[PLAYERS_ACTIVE][0]
                 pots[i] = sum_bet
                 break
 
-            if not ACTIVE_PLAYERS[player]:
+            if not PLAYERS_ACTIVE[player]:
                 continue
 
             if min_bet == max_bet:
@@ -271,7 +273,8 @@ for i in range(LEN_ROUNDS_KEY):
                 stacks[player] -= bet
 
             elif betting_option == "CALL":
-                ACTIVE_PLAYERS[player] = False
+                PLAYERS_ACTIVE[player] = False
+                PLAYERS_ALL_IN[player] = True
                 betting_option = "ALL_IN"
                 bet = stacks[player] - bets[player]
                 bets[player] += bet
@@ -296,14 +299,14 @@ for i in range(LEN_ROUNDS_KEY):
                 stacks[player] -= bet
 
             elif betting_option == "RAISE":
-                ACTIVE_PLAYERS[player] = False
+                PLAYERS_ACTIVE[player] = False
                 betting_option = "ALL_IN"
                 bet = stacks[player] - bets[player]
                 bets[player] += bet
                 stacks[player] -= bet
 
             else:
-                ACTIVE_PLAYERS[player] = False
+                PLAYERS_ACTIVE[player] = False
                 bet = 0
                 bets[player] += bet
                 stacks[player] -= bet
@@ -318,7 +321,8 @@ for i in range(LEN_ROUNDS_KEY):
             print(f"betting options\t:{betting_options}")
             print(f"bets\t\t:{bets}")
             print(f"stacks\t\t:{stacks}")
-            print(f"active players\t:{ACTIVE_PLAYERS}")
+            print(f"active players\t:{PLAYERS_ACTIVE}")
+            print(f"all in players\t:{PLAYERS_ALL_IN}")
             print()
 
     # このゲームの目的は、ポット（pot, 全員の賭け金を集めたもの）を獲得することにある。ポットを獲得するためには、ショーダウンの際に最も強い5枚のカードを持つか、中途のベットラウンドにおいて他のプレイヤーを勝負から降ろす（フォルドさせる）必要がある。
@@ -346,7 +350,7 @@ for i in range(LEN_ROUNDS_KEY):
             )
 
         print(f"players hands\t:{poker_hands}")
-        print(f"active hands\t:{poker_hands[ACTIVE_PLAYERS]}")
+        print(f"active hands\t:{poker_hands[PLAYERS_ACTIVE]}")
         print()
 
     print("-" * 90)
@@ -355,7 +359,8 @@ for i in range(LEN_ROUNDS_KEY):
 
 print(f"winner\t\t:{winner}")
 print(f"pots\t\t:{pots}")
-print(f"active players\t:{ACTIVE_PLAYERS}")
+print(f"active players\t:{PLAYERS_ACTIVE}")
+print(f"all in players\t:{PLAYERS_ALL_IN}")
 
 print()
 print("=" * 90)
