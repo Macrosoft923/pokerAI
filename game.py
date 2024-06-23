@@ -121,7 +121,8 @@ def getpokerhand(cards):
     return poker_hand
 
 
-def gethighesthand(cards):
+def gethighesthand(cards, poker_hand):
+    # 続きは、ここから
     return
 
 
