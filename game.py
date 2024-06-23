@@ -39,23 +39,26 @@ POKER_HANDS = (
 )
 
 
-def isclosed(PLAYERS_ACTIVE, bets, stacks):
-    if np.count_nonzero(PLAYERS_ACTIVE) < 2:
+def isclosed(players_active, players_all_in, bets, stacks):
+    if np.count_nonzero(players_active) < 2:
+        return True
+
+    if np.count_nonzero(players_all_in) > 1:
         return True
 
     if all(
         [
-            bet == bets[PLAYERS_ACTIVE][0] and bets[PLAYERS_ACTIVE][0] != 0
-            for bet in bets[PLAYERS_ACTIVE]
+            bet == bets[players_active][0] and bets[players_active][0] != 0
+            for bet in bets[players_active]
         ]
     ):
         return True
 
-    if all([stack == 0 for stack in stacks[PLAYERS_ACTIVE]]):
+    if all([stack == 0 for stack in stacks[players_active]]):
         return True
 
 
-def getpokerhands(cards):
+def getpokerhand(cards):
     poker_hand = 8
     sum_suits = np.sum(cards, axis=1)
     sum_numbers = np.sum(cards, axis=0)
@@ -116,6 +119,10 @@ def getpokerhands(cards):
         poker_hand = 4
 
     return poker_hand
+
+
+def gethighesthand(cards):
+    return
 
 
 print("=" * 90)
@@ -230,18 +237,16 @@ for i in range(LEN_ROUNDS_KEY):
             player = (j + button + 3) % players
 
             betting_options = np.empty(0, dtype=str)
-            # betting_options = np.append(betting_options, "FOLD")
+            betting_options = np.append(betting_options, "FOLD")
 
-            if i < 3 and isclosed(PLAYERS_ACTIVE, bets, stacks):
+            if i < 3 and isclosed(PLAYERS_ACTIVE, PLAYERS_ALL_IN, bets, stacks):
                 ROUNDS_VALUE[i] = False
                 ROUNDS_VALUE[i + 1] = True
-                winner = np.arange(players)[PLAYERS_ACTIVE][0]
                 pots[i] = sum_bet
                 break
 
-            elif i == 3 and isclosed(PLAYERS_ACTIVE, bets, stacks):
+            elif i == 3 and isclosed(PLAYERS_ACTIVE, PLAYERS_ALL_IN, bets, stacks):
                 ROUNDS_VALUE[i] = False
-                winner = np.arange(players)[PLAYERS_ACTIVE][0]
                 pots[i] = sum_bet
                 break
 
@@ -342,16 +347,14 @@ for i in range(LEN_ROUNDS_KEY):
 
             print()
 
-        poker_hands = np.empty(0, dtype=str)
+        players_hands = np.empty(0, dtype=int)
 
         for j in range(players):
-            poker_hands = np.append(
-                poker_hands, POKER_HANDS[getpokerhands(CARDS_HOLE[j])]
-            )
+            players_hands = np.append(players_hands, getpokerhand(CARDS_HOLE[j]))
 
-        print(f"players hands\t:{poker_hands}")
-        print(f"active hands\t:{poker_hands[PLAYERS_ACTIVE]}")
-        print()
+        winner_hand = np.min(players_hands)
+        winner_index = np.argmin(players_hands)
+        winner = np.arange(players)[winner_index]
 
     print("-" * 90)
     print()
@@ -361,6 +364,8 @@ print(f"winner\t\t:{winner}")
 print(f"pots\t\t:{pots}")
 print(f"active players\t:{PLAYERS_ACTIVE}")
 print(f"all in players\t:{PLAYERS_ALL_IN}")
+print(f"players hands\t:{[POKER_HANDS[i] for i in players_hands]}")
+print(f"winner hand\t:{POKER_HANDS[winner_hand]}")
 
 print()
 print("=" * 90)
