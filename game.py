@@ -11,6 +11,7 @@ PLAYERS_ACTIVE = np.ones(players, dtype=bool)
 PLAYERS_ALL_IN = np.zeros(players, dtype=bool)
 
 BUTTON = random.randint(0, players - 1)
+
 winner = None
 
 MIN_BET = 40
@@ -39,16 +40,13 @@ POKER_HANDS = (
 )
 
 
-def isclosed(players_active, players_all_in, bets, stacks):
+def isclosed(players_active, actions_counter, bets, stacks):
     if np.count_nonzero(players_active) < 2:
-        return True
-
-    if np.count_nonzero(players_all_in) > 1:
         return True
 
     if all(
         [
-            bet == bets[players_active][0] and bets[players_active][0] != 0
+            bet == bets[players_active][0] and actions_counter[players_active][0] != 0
             for bet in bets[players_active]
         ]
     ):
@@ -146,6 +144,8 @@ for i in range(LEN_ROUNDS_KEY):
     blind_big = (button + 2) % players
 
     if ROUNDS_KEY[i] == "PRE_FLOP":
+        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+
         bets = np.zeros(players, dtype=np.int64)
         bets[blind_small] += MIN_BET // 2
         bets[blind_big] += MIN_BET
@@ -164,6 +164,8 @@ for i in range(LEN_ROUNDS_KEY):
                     cards[suit, number] = 0
 
     elif ROUNDS_KEY[i] == "FLOP":
+        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+
         bets = np.zeros(players, dtype=int)
 
         while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
@@ -177,6 +179,8 @@ for i in range(LEN_ROUNDS_KEY):
         SUM_CARDS_COMMUNITY += 1
 
     elif ROUNDS_KEY[i] == "TURN":
+        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+
         bets = np.zeros(players, dtype=int)
 
         while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
@@ -190,6 +194,8 @@ for i in range(LEN_ROUNDS_KEY):
         SUM_CARDS_COMMUNITY += 1
 
     else:
+        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+
         bets = np.zeros(players, dtype=int)
 
         while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
@@ -212,13 +218,14 @@ for i in range(LEN_ROUNDS_KEY):
     print(f"stacks\t\t:{stacks}")
     print(f"active players\t:{PLAYERS_ACTIVE}")
     print(f"all in players\t:{PLAYERS_ALL_IN}")
+    print(f"actions counter\t:{ACTIONS_COUNTER}")
     print()
 
     if ROUNDS_KEY[i] == "PRE_FLOP":
         for j in range(players):
             for k in range(LEN_SUITS):
-                if j == 0 and k == 0:
-                    print(f"hole cards\t:{CARDS_HOLE[0][0]}")
+                if k == 0:
+                    print(f"hole cards[{j}]\t:{CARDS_HOLE[0][0]}")
                 else:
                     print(f"\t\t:{CARDS_HOLE[j][k]}")
 
@@ -240,13 +247,13 @@ for i in range(LEN_ROUNDS_KEY):
             betting_options = np.empty(0, dtype=str)
             betting_options = np.append(betting_options, "FOLD")
 
-            if i < 3 and isclosed(PLAYERS_ACTIVE, PLAYERS_ALL_IN, bets, stacks):
+            if i < 3 and isclosed(PLAYERS_ACTIVE, ACTIONS_COUNTER, bets, stacks):
                 ROUNDS_VALUE[i] = False
                 ROUNDS_VALUE[i + 1] = True
                 pots[i] = sum_bet
                 break
 
-            elif i == 3 and isclosed(PLAYERS_ACTIVE, PLAYERS_ALL_IN, bets, stacks):
+            elif i == 3 and isclosed(PLAYERS_ACTIVE, ACTIONS_COUNTER, bets, stacks):
                 ROUNDS_VALUE[i] = False
                 pots[i] = sum_bet
                 break
@@ -256,46 +263,42 @@ for i in range(LEN_ROUNDS_KEY):
 
             if min_bet == max_bet:
                 betting_options = np.append(betting_options, "CHECK")
-
-            if min_bet != max_bet:
+            else:
                 betting_options = np.append(betting_options, "CALL")
 
             if np.count_nonzero(bets) == 0:
                 betting_options = np.append(betting_options, "BET")
-
-            if np.count_nonzero(bets) != 0:
+            else:
                 betting_options = np.append(betting_options, "RAISE")
+
+            if (
+                np.count_nonzero(PLAYERS_ALL_IN) > 0
+                or max_bet - bets[player] > stacks[player]
+            ):
+                betting_options = np.array(["FOLD", "ALL_IN"])
 
             betting_option = random.choices(betting_options)[0]
 
             if betting_option == "CHECK":
+                ACTIONS_COUNTER[player] += 1
                 bet = 0
                 bets[player] += bet
                 stacks[player] -= bet
 
-            elif betting_option == "CALL" and max_bet - bets[player] < stacks[player]:
+            elif betting_option == "CALL":
+                ACTIONS_COUNTER[player] += 1
                 bet = max_bet - bets[player]
                 bets[player] += bet
                 stacks[player] -= bet
 
-            elif betting_option == "CALL":
-                PLAYERS_ACTIVE[player] = False
-                PLAYERS_ALL_IN[player] = True
-                betting_option = "ALL_IN"
-                bet = stacks[player] - bets[player]
-                bets[player] += bet
-                stacks[player] -= bet
-
             elif betting_option == "BET":
+                ACTIONS_COUNTER[player] += 1
                 bet = MIN_BET
                 bets[player] += bet
                 stacks[player] -= bet
 
-            elif betting_option == "RAISE" and (
-                (2 * max_bet - bets[player])
-                < 2 * max_bet + sum_bet - bets[player]
-                < stacks[player]
-            ):
+            elif betting_option == "RAISE":
+                ACTIONS_COUNTER[player] += 1
                 bet = random.randrange(
                     2 * max_bet - bets[player],
                     2 * max_bet + sum_bet - bets[player],
@@ -304,15 +307,16 @@ for i in range(LEN_ROUNDS_KEY):
                 bets[player] += bet
                 stacks[player] -= bet
 
-            elif betting_option == "RAISE":
-                PLAYERS_ACTIVE[player] = False
-                betting_option = "ALL_IN"
+            elif betting_option == "ALL_IN":
+                PLAYERS_ALL_IN[player] = True
+                ACTIONS_COUNTER[player] += 1
                 bet = stacks[player] - bets[player]
                 bets[player] += bet
                 stacks[player] -= bet
 
             else:
                 PLAYERS_ACTIVE[player] = False
+                ACTIONS_COUNTER[player] += 1
                 bet = 0
                 bets[player] += bet
                 stacks[player] -= bet
@@ -329,6 +333,7 @@ for i in range(LEN_ROUNDS_KEY):
             print(f"stacks\t\t:{stacks}")
             print(f"active players\t:{PLAYERS_ACTIVE}")
             print(f"all in players\t:{PLAYERS_ALL_IN}")
+            print(f"actions counter\t:{ACTIONS_COUNTER}")
             print()
 
     # このゲームの目的は、ポット（pot, 全員の賭け金を集めたもの）を獲得することにある。ポットを獲得するためには、ショーダウンの際に最も強い5枚のカードを持つか、中途のベットラウンドにおいて他のプレイヤーを勝負から降ろす（フォルドさせる）必要がある。
@@ -341,8 +346,8 @@ for i in range(LEN_ROUNDS_KEY):
 
         for j in range(players):
             for k in range(LEN_SUITS):
-                if j == 0 and k == 0:
-                    print(f"hole cards\t:{CARDS_HOLE[0][0]}")
+                if k == 0:
+                    print(f"hole cards[{j}]\t:{CARDS_HOLE[0][0]}")
                 else:
                     print(f"\t\t:{CARDS_HOLE[j][k]}")
 
@@ -353,9 +358,9 @@ for i in range(LEN_ROUNDS_KEY):
         for j in range(players):
             players_hands = np.append(players_hands, getpokerhand(CARDS_HOLE[j]))
 
-        winner_hand = np.min(players_hands)
-        winner_index = np.argmin(players_hands)
-        winner = np.arange(players)[winner_index]
+        min_players_hands = np.min(players_hands[PLAYERS_ACTIVE])
+        # winner = np.where(players_hands == min_players_hands)
+        winner = np.where(players_hands == min_players_hands)[0][0]
 
     print("-" * 90)
     print()
@@ -366,7 +371,7 @@ print(f"pots\t\t:{pots}")
 print(f"active players\t:{PLAYERS_ACTIVE}")
 print(f"all in players\t:{PLAYERS_ALL_IN}")
 print(f"players hands\t:{[POKER_HANDS[i] for i in players_hands]}")
-print(f"winner hand\t:{POKER_HANDS[winner_hand]}")
+print(f"winner hand\t:{POKER_HANDS[min_players_hands]}")
 
 print()
 print("=" * 90)
