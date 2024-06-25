@@ -7,6 +7,7 @@ MIN_PLAYERS = 2
 MAX_PLAYERS = 10
 players = (MIN_PLAYERS + MAX_PLAYERS) // 2
 
+PLAYERS = np.arange(players, dtype=int)
 PLAYERS_ACTIVE = np.ones(players, dtype=bool)
 PLAYERS_ALL_IN = np.zeros(players, dtype=bool)
 
@@ -144,7 +145,7 @@ for i in range(LEN_ROUNDS_KEY):
     blind_big = (button + 2) % players
 
     if ROUNDS_KEY[i] == "PRE_FLOP":
-        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+        actions_counter = np.zeros(players, dtype=int)
 
         bets = np.zeros(players, dtype=np.int64)
         bets[blind_small] += MIN_BET // 2
@@ -164,7 +165,7 @@ for i in range(LEN_ROUNDS_KEY):
                     cards[suit, number] = 0
 
     elif ROUNDS_KEY[i] == "FLOP":
-        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+        actions_counter = np.zeros(players, dtype=int)
 
         bets = np.zeros(players, dtype=int)
 
@@ -179,7 +180,7 @@ for i in range(LEN_ROUNDS_KEY):
         SUM_CARDS_COMMUNITY += 1
 
     elif ROUNDS_KEY[i] == "TURN":
-        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+        actions_counter = np.zeros(players, dtype=int)
 
         bets = np.zeros(players, dtype=int)
 
@@ -194,7 +195,7 @@ for i in range(LEN_ROUNDS_KEY):
         SUM_CARDS_COMMUNITY += 1
 
     else:
-        ACTIONS_COUNTER = np.zeros(players, dtype=int)
+        actions_counter = np.zeros(players, dtype=int)
 
         bets = np.zeros(players, dtype=int)
 
@@ -216,9 +217,9 @@ for i in range(LEN_ROUNDS_KEY):
     print(f"pots\t\t:{pots}")
     print(f"bets\t\t:{bets}")
     print(f"stacks\t\t:{stacks}")
+    print(f"actions counter\t:{actions_counter}")
     print(f"active players\t:{PLAYERS_ACTIVE}")
     print(f"all in players\t:{PLAYERS_ALL_IN}")
-    print(f"actions counter\t:{ACTIONS_COUNTER}")
     print()
 
     if ROUNDS_KEY[i] == "PRE_FLOP":
@@ -247,13 +248,13 @@ for i in range(LEN_ROUNDS_KEY):
             betting_options = np.empty(0, dtype=str)
             betting_options = np.append(betting_options, "FOLD")
 
-            if i < 3 and isclosed(PLAYERS_ACTIVE, ACTIONS_COUNTER, bets, stacks):
+            if i < 3 and isclosed(PLAYERS_ACTIVE, actions_counter, bets, stacks):
                 ROUNDS_VALUE[i] = False
                 ROUNDS_VALUE[i + 1] = True
                 pots[i] = sum_bet
                 break
 
-            elif i == 3 and isclosed(PLAYERS_ACTIVE, ACTIONS_COUNTER, bets, stacks):
+            elif i == 3 and isclosed(PLAYERS_ACTIVE, actions_counter, bets, stacks):
                 ROUNDS_VALUE[i] = False
                 pots[i] = sum_bet
                 break
@@ -280,25 +281,24 @@ for i in range(LEN_ROUNDS_KEY):
             betting_option = random.choices(betting_options)[0]
 
             if betting_option == "CHECK":
-                ACTIONS_COUNTER[player] += 1
                 bet = 0
                 bets[player] += bet
                 stacks[player] -= bet
+                actions_counter[player] += 1
 
             elif betting_option == "CALL":
-                ACTIONS_COUNTER[player] += 1
                 bet = max_bet - bets[player]
                 bets[player] += bet
                 stacks[player] -= bet
+                actions_counter[player] += 1
 
             elif betting_option == "BET":
-                ACTIONS_COUNTER[player] += 1
                 bet = MIN_BET
                 bets[player] += bet
                 stacks[player] -= bet
+                actions_counter[player] += 1
 
             elif betting_option == "RAISE":
-                ACTIONS_COUNTER[player] += 1
                 bet = random.randrange(
                     2 * max_bet - bets[player],
                     2 * max_bet + sum_bet - bets[player],
@@ -306,20 +306,21 @@ for i in range(LEN_ROUNDS_KEY):
                 )
                 bets[player] += bet
                 stacks[player] -= bet
+                actions_counter[player] += 1
 
             elif betting_option == "ALL_IN":
                 PLAYERS_ALL_IN[player] = True
-                ACTIONS_COUNTER[player] += 1
                 bet = stacks[player] - bets[player]
                 bets[player] += bet
                 stacks[player] -= bet
+                actions_counter[player] += 1
 
             else:
                 PLAYERS_ACTIVE[player] = False
-                ACTIONS_COUNTER[player] += 1
                 bet = 0
                 bets[player] += bet
                 stacks[player] -= bet
+                actions_counter[player] += 1
 
             min_bet = min(bets)
             max_bet = max(bets)
@@ -331,9 +332,9 @@ for i in range(LEN_ROUNDS_KEY):
             print(f"betting options\t:{betting_options}")
             print(f"bets\t\t:{bets}")
             print(f"stacks\t\t:{stacks}")
+            print(f"actions counter\t:{actions_counter}")
             print(f"active players\t:{PLAYERS_ACTIVE}")
             print(f"all in players\t:{PLAYERS_ALL_IN}")
-            print(f"actions counter\t:{ACTIONS_COUNTER}")
             print()
 
     # このゲームの目的は、ポット（pot, 全員の賭け金を集めたもの）を獲得することにある。ポットを獲得するためには、ショーダウンの際に最も強い5枚のカードを持つか、中途のベットラウンドにおいて他のプレイヤーを勝負から降ろす（フォルドさせる）必要がある。
@@ -354,13 +355,26 @@ for i in range(LEN_ROUNDS_KEY):
             print()
 
         players_hands = np.empty(0, dtype=int)
+        players_highests = np.empty(0, dtype=int)
 
         for j in range(players):
-            players_hands = np.append(players_hands, getpokerhand(CARDS_HOLE[j]))
+            players_hand = getpokerhand(CARDS_HOLE[j])
+            players_highest = gethighesthand(CARDS_HOLE[j], players_hand)
 
-        min_players_hands = np.min(players_hands[PLAYERS_ACTIVE])
-        # winner = np.where(players_hands == min_players_hands)
-        winner = np.where(players_hands == min_players_hands)[0][0]
+            players_hands = np.append(players_hands, players_hand)
+            players_highests = np.append(players_highests, players_highest)
+
+        remaining_hands = players_hands[PLAYERS_ACTIVE]
+        remaining_players = PLAYERS[PLAYERS_ACTIVE]
+
+        min_remaining_hands = np.min(remaining_hands)
+
+        winner = remaining_hands[remaining_hands == min_remaining_hands]
+
+        print(remaining_hands)
+        print(remaining_players)
+        print(winner)
+        print()
 
     print("-" * 90)
     print()
@@ -371,7 +385,7 @@ print(f"pots\t\t:{pots}")
 print(f"active players\t:{PLAYERS_ACTIVE}")
 print(f"all in players\t:{PLAYERS_ALL_IN}")
 print(f"players hands\t:{[POKER_HANDS[i] for i in players_hands]}")
-print(f"winner hand\t:{POKER_HANDS[min_players_hands]}")
+print(f"winner hand\t:{POKER_HANDS[min_remaining_hands]}")
 
 print()
 print("=" * 90)
