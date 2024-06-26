@@ -288,7 +288,7 @@ for i in range(LEN_ROUNDS_KEY):
         for j in range(players):
             for k in range(LEN_SUITS):
                 if k == 0:
-                    print(f"hole cards[{j}]\t:{CARDS_HOLE[0, 0]}")
+                    print(f"hole cards[{j}]\t:{CARDS_HOLE[j, 0]}")
                 else:
                     print(f"\t\t:{CARDS_HOLE[j, k]}")
 
