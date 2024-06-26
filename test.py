@@ -1,12 +1,11 @@
 import numpy as np
 
-np.random.seed(123)
-x = np.random.randint(9, size=(3, 3))
+while np.count_nonzero(CARDS_HOLE[j]) < SUM_CARDS_HOLE:
+    suit = random.randint(0, 3)
+    number = random.randint(0, 12)
 
-print(x)
-print(x.item(3))
-
-y = np.random.randint(10, size=(1, 10))
-
-print(y)
-print(y.item(-1))
+    if CARDS_COUNTER[suit, number] == 1:
+        CARDS_HOLE[j, suit, number] = 1
+        CARDS_COUNTER[suit, number] = 0
+    else:
+        continue
