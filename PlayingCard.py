@@ -117,3 +117,66 @@ class PlayingCard:
                             continue
 
         return playerhands
+
+    def ty_get_card(self, N, many):
+            #N人にmany枚配ります
+            playerhands = np.zeros((N, 4, 13))
+
+            for i in range(N):
+                playercards = self.get_cards(many)
+                for playercard in playercards:
+                    # カード番号をスートとランクに分解
+                    suit = playercard // 13
+                    number = playercard % 13
+
+                    for j in range(4):
+                        for k in range(13):
+                            # 該当するスートとランクの位置に1を設定
+                            if j == suit and k == number:
+                                playerhands[i, j, k] = 1
+                            else:
+                                continue
+
+            return playerhands
+    
+    def cardprint(self, list):
+        coordinates = [[i, j] for i, row in enumerate(list) for j, value in enumerate(row) if value == 1]
+        for i in coordinates:
+            if i[0] == 0:
+                i[0] = "♡"
+            elif i[0] == 1:
+                i[0] = "♢"
+            elif i[0] == 2:
+                i[0] = "♤"
+            elif i[0] == 3:
+                i[0] = "♧"
+            if i[1] == 0:
+                i[1] = "A"
+            elif i[1] == 1:
+                i[1] = "K"
+            elif i[1] == 2:
+                i[1] = "Q"
+            elif i[1] == 3:
+                i[1] = "J"
+            elif i[1] == 4:
+                i[1] = "T"
+            else:
+                i[1] = 14 - i[1]
+        return coordinates
+    
+    def judall(self,result1,result2):
+        max_value = max(result1)
+        if result1.count(max_value) == 1:
+            max_index =result1.index(max_value)
+            return [max_index]
+        else:
+            max_index = [index for index, value in enumerate(result1) if value == max_value]
+            for i in max_index:
+                result2[i].insert(0,-1)
+            minlist = min(result2)
+            if result2.count(minlist) == 1:
+                min_index = result2.index(minlist)
+                return [min_index]
+            else:
+                indices = [index for index, value in enumerate(result2) if value == minlist]
+                return indices
