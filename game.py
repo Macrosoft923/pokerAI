@@ -428,7 +428,7 @@ for i in range(LEN_ROUNDS_KEY):
             hand_id = idpokerhand(hand_poker)
             hand_point = np.sum(hand_highest[0] * CARDS_RANKED)
 
-            information = np.array([indexes[0], indexes[1], hand_id, hand_point])
+            information = np.array([j + 1, indexes[0], indexes[1], hand_id, hand_point])
             data = np.append(data, information)
 
             print(f"poker hand[{j}]\t:{hand_poker}")
@@ -456,10 +456,10 @@ for i in range(LEN_ROUNDS_KEY):
         # print(remaining_players)
         # print(winner)
 
-        data = data.reshape([players, 4])
+        data = data.reshape([players, 5])
         dataframe = pd.DataFrame(
             data,
-            columns=["indexes[0]", "indexes[1]", "hand_id", "hand_point"],
+            columns=["player", "indexes[0]", "indexes[1]", "hand_id", "hand_point"],
             index=[
                 "player_1",
                 "player_2",
@@ -470,7 +470,7 @@ for i in range(LEN_ROUNDS_KEY):
             ],
         )
 
-        print(dataframe)
+        print(dataframe.sort_values(["hand_id", "indexes[1]", "indexes[0]"]))
         print()
 
     print("~" * 90)
