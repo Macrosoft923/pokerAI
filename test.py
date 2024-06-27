@@ -1,11 +1,7 @@
 import numpy as np
+import pandas as pd
 
-while np.count_nonzero(CARDS_HOLE[j]) < SUM_CARDS_HOLE:
-    suit = random.randint(0, 3)
-    number = random.randint(0, 12)
+test = np.arange(13, dtype=int)
+highest_hand = np.zeros(13, dtype=int)
 
-    if CARDS_COUNTER[suit, number] == 1:
-        CARDS_HOLE[j, suit, number] = 1
-        CARDS_COUNTER[suit, number] = 0
-    else:
-        continue
+print(np.append(test, highest_hand, axis=0))
