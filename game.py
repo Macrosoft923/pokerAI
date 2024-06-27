@@ -1,5 +1,6 @@
 import collections
 import numpy as np
+import pandas as pd
 import random
 import time
 
@@ -25,22 +26,23 @@ NUMBERS = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
 LEN_SUITS = len(SUITS)
 LEN_NUMBERS = len(NUMBERS)
 
+CARDS_COUNTER = np.ones((LEN_SUITS, LEN_NUMBERS), dtype=int)
 CARDS_COMMUNITY = np.zeros((LEN_SUITS, LEN_NUMBERS), dtype=int)
 CARDS_HOLE = np.zeros((players, LEN_SUITS, LEN_NUMBERS), dtype=int)
-CARDS_COUNTER = np.ones((LEN_SUITS, LEN_NUMBERS), dtype=int)
+CARDS_RANKED = np.arange(LEN_NUMBERS, dtype=int) + 1
 SUM_CARDS_COMMUNITY = 3
 SUM_CARDS_HOLE = 2
 
 POKER_HANDS = (
-    "STRAIGHT_FLUSH",
-    "FOUR_OF_A_KIND",
-    "FULL_HOUSE",
-    "FLUSH",
-    "STRAIGHT",
-    "THREE_OF_A_KIND",
-    "TWO_PAIR",
-    "ONE_PAIR",
     "HIGH_CARD",
+    "ONE_PAIR",
+    "TWO_PAIR",
+    "THREE_OF_A_KIND",
+    "STRAIGHT",
+    "FLUSH",
+    "FULL_HOUSE",
+    "FOUR_OF_A_KIND",
+    "STRAIGHT_FLUSH",
 )
 
 
@@ -48,11 +50,8 @@ def isclosed(players_active, actions_counter, bets, stacks):
     if np.count_nonzero(players_active) < 2:
         return True
 
-    if all(  ###
-        [
-            bet == bets[players_active][0] and actions_counter[players_active][0] != 0
-            for bet in bets[players_active]
-        ]
+    if all([bet == bets[players_active][0] for bet in bets[players_active]]) and all(
+        actions != 0 for actions in actions_counter[players_active]
     ):
         return True
 
@@ -89,17 +88,17 @@ def getpokerhand(cards):
         isthreeofakind = False
         isfourofakind = False
 
-        if np.count_nonzero(sum_numbers == 4) == 1:
-            isfourofakind = True
-
-        if np.count_nonzero(sum_numbers == 3) == 1:
-            isthreeofakind = True
+        if np.count_nonzero(sum_numbers == 2) == 1:
+            isonepair = True
 
         if np.count_nonzero(sum_numbers == 2) == 2:
             istwopair = True
 
-        if np.count_nonzero(sum_numbers == 2) == 1:
-            isonepair = True
+        if np.count_nonzero(sum_numbers == 3) == 1:
+            isthreeofakind = True
+
+        if np.count_nonzero(sum_numbers == 4) == 1:
+            isfourofakind = True
 
         if isonepair:
             index = np.argwhere(sum_numbers == 2)
@@ -166,36 +165,44 @@ def getpokerhand(cards):
 
 def gethighesthand(cards, indexes, poker_hand):
     sum_numbers = np.sum(cards, axis=0)
-    highest_hand = np.zeros(LEN_NUMBERS, dtype=int)
-    highest_hand = np.stack([sum_numbers, highest_hand])
+    hands_zeros = np.zeros(LEN_NUMBERS, dtype=int)
+
+    highest_hands = np.stack([sum_numbers, hands_zeros], axis=0)
 
     if poker_hand == "ONE_PAIR":
-        highest_hand[1, indexes[0]] = 2
-        highest_hand[0] -= highest_hand[1]
+        highest_hands[1, indexes[0]] = 2
+        highest_hands[0] -= highest_hands[1]
 
     elif poker_hand == "TWO_PAIR":
-        highest_hand[1, indexes[0]] = 2
-        highest_hand[1, indexes[1]] = 2
-        highest_hand[0] -= highest_hand[1]
+        highest_hands[1, indexes[0]] = 2
+        highest_hands[1, indexes[1]] = 2
+        highest_hands[0] -= highest_hands[1]
 
     elif poker_hand == "THREE_OF_A_KIND":
-        highest_hand[1, indexes[0]] = 3
-        highest_hand[0] -= highest_hand[1]
+        highest_hands[1, indexes[0]] = 3
+        highest_hands[0] -= highest_hands[1]
 
     elif poker_hand == "STRAIGHT" or poker_hand == "STRAIGHT_FLUSH":
-        highest_hand[1, indexes[0] : indexes[0] + 5] = 1
-        highest_hand[0] -= highest_hand[1]
+        highest_hands[1, indexes[0] : indexes[0] + 5] = 1
+        highest_hands[0] -= highest_hands[1]
 
     elif poker_hand == "FULL_HOUSE":
-        highest_hand[1, indexes[0]] = 2
-        highest_hand[1, indexes[1]] = 3
-        highest_hand[0] -= highest_hand[1]
+        highest_hands[1, indexes[0]] = 2
+        highest_hands[1, indexes[1]] = 3
+        highest_hands[0] -= highest_hands[1]
 
     elif poker_hand == "FOUR_OF_A_KIND":
-        highest_hand[1, indexes[0]] = 4
-        highest_hand[0] -= highest_hand[1]
+        highest_hands[1, indexes[0]] = 4
+        highest_hands[0] -= highest_hands[1]
 
-    return highest_hand
+    return highest_hands
+
+
+def idpokerhand(poker_hand):
+    poker_hands = np.array(POKER_HANDS)
+    hand_where = np.where(poker_hands == poker_hand)
+    hand_id = hand_where[0][0]
+    return hand_id
 
 
 print("=" * 90)
@@ -267,16 +274,18 @@ for i in range(LEN_ROUNDS_KEY):
                 CARDS_COMMUNITY[suit, number] = 1
                 CARDS_COUNTER[suit, number] = 0
 
-    min_bet = min(bets)
-    max_bet = max(bets)
-    sum_bet = sum(bets)
+    min_bet = np.min(bets)
+    max_bet = np.max(bets)
+    sum_bet = np.sum(bets)
 
     print(
         f"information\t:round:\033[34m{ROUNDS_KEY[i]}\033[0m, players:\033[32m{players}\033[0m, button:\033[32m{button}\033[0m, small blind:\033[32m{blind_small}\033[0m, big blind:\033[32m{blind_big}\033[0m"
     )
+    np.set_printoptions(formatter={"int": lambda x: f"${x}"})
     print(f"pots\t\t:{pots}")
     print(f"bets\t\t:{bets}")
     print(f"stacks\t\t:{stacks}")
+    np.set_printoptions(formatter={"int": None})
     print(f"actions counter\t:{actions_counter}")
     print(f"active players\t:{PLAYERS_ACTIVE}")
     print(f"all in players\t:{PLAYERS_ALL_IN}")
@@ -387,16 +396,18 @@ for i in range(LEN_ROUNDS_KEY):
                 stacks[player] -= bet
                 actions_counter[player] += 1
 
-            min_bet = min(bets)
-            max_bet = max(bets)
-            sum_bet = sum(bets)
+            min_bet = np.min(bets)
+            max_bet = np.max(bets)
+            sum_bet = np.sum(bets)
 
             print(
                 f"information\t:player:\033[31m{player}\033[0m, betting option:\033[31m{betting_option}\033[0m, bet:\033[31m{bet}\033[0m, min bet:\033[31m{min_bet}\033[0m, max bet:\033[31m{max_bet}\033[0m, sum bet:\033[31m{sum_bet}\033[0m"
             )
             print(f"betting options\t:{betting_options}")
+            np.set_printoptions(formatter={"int": lambda x: f"${x}"})
             print(f"bets\t\t:{bets}")
             print(f"stacks\t\t:{stacks}")
+            np.set_printoptions(formatter={"int": None})
             print(f"actions counter\t:{actions_counter}")
             print(f"active players\t:{PLAYERS_ACTIVE}")
             print(f"all in players\t:{PLAYERS_ALL_IN}")
@@ -408,12 +419,17 @@ for i in range(LEN_ROUNDS_KEY):
 
         CARDS_HOLE += CARDS_COMMUNITY
 
-        hands_poker = np.empty(0, dtype=int)
-        hands_poker_best = np.empty(0, dtype=int)
+        data = np.empty(0, dtype=int)
 
         for j in range(players):
             indexes, hand_poker = getpokerhand(CARDS_HOLE[j])
             hand_highest = gethighesthand(CARDS_HOLE[j], indexes, hand_poker)
+
+            hand_id = idpokerhand(hand_poker)
+            hand_point = np.sum(hand_highest[0] * CARDS_RANKED)
+
+            information = np.array([indexes[0], indexes[1], hand_id, hand_point])
+            data = np.append(data, information)
 
             print(f"poker hand[{j}]\t:{hand_poker}")
             print()
@@ -439,6 +455,23 @@ for i in range(LEN_ROUNDS_KEY):
         # print(remaining_poker_hands)
         # print(remaining_players)
         # print(winner)
+
+        data = data.reshape([players, 4])
+        dataframe = pd.DataFrame(
+            data,
+            columns=["indexes[0]", "indexes[1]", "hand_id", "hand_point"],
+            index=[
+                "player_1",
+                "player_2",
+                "player_3",
+                "player_4",
+                "player_5",
+                "player_6",
+            ],
+        )
+
+        print(dataframe)
+        print()
 
     print("~" * 90)
     print()
