@@ -46,6 +46,16 @@ POKER_HANDS = (
 )
 
 
+def getcards(cards, x):
+    while np.count_nonzero(cards) < x:
+        suit = random.randint(0, 3)
+        number = random.randint(0, 12)
+
+        if CARDS_COUNTER[suit, number] == 1:
+            cards[suit, number] = 1
+            CARDS_COUNTER[suit, number] = 0
+
+
 def isclosed(players_active, actions_counter, bets, stacks):
     if np.count_nonzero(players_active) < 2:
         return True
@@ -233,46 +243,18 @@ for i in range(LEN_ROUNDS_KEY):
         stacks[blind_big] -= MIN_BET
 
         for j in range(players):
-            while np.count_nonzero(CARDS_HOLE[j]) < SUM_CARDS_HOLE:
-                suit = random.randint(0, 3)
-                number = random.randint(0, 12)
-
-                if CARDS_COUNTER[suit, number] == 1:
-                    CARDS_HOLE[j, suit, number] = 1
-                    CARDS_COUNTER[suit, number] = 0
-                else:
-                    continue
+            getcards(CARDS_HOLE[j], SUM_CARDS_HOLE)
 
     elif ROUNDS_KEY[i] == "FLOP":
-        while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
-            suit = random.randint(0, 3)
-            number = random.randint(0, 12)
-
-            if CARDS_COUNTER[suit, number] == 1:
-                CARDS_COMMUNITY[suit, number] = 1
-                CARDS_COUNTER[suit, number] = 0
-
+        getcards(CARDS_COMMUNITY, SUM_CARDS_COMMUNITY)
         SUM_CARDS_COMMUNITY += 1
 
     elif ROUNDS_KEY[i] == "TURN":
-        while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
-            suit = random.randint(0, 3)
-            number = random.randint(0, 12)
-
-            if CARDS_COUNTER[suit, number] == 1:
-                CARDS_COMMUNITY[suit, number] = 1
-                CARDS_COUNTER[suit, number] = 0
-
+        getcards(CARDS_COMMUNITY, SUM_CARDS_COMMUNITY)
         SUM_CARDS_COMMUNITY += 1
 
     else:
-        while np.count_nonzero(CARDS_COMMUNITY) < SUM_CARDS_COMMUNITY:
-            suit = random.randint(0, 3)
-            number = random.randint(0, 12)
-
-            if CARDS_COUNTER[suit, number] == 1:
-                CARDS_COMMUNITY[suit, number] = 1
-                CARDS_COUNTER[suit, number] = 0
+        getcards(CARDS_COMMUNITY, SUM_CARDS_COMMUNITY)
 
     min_bet = np.min(bets)
     max_bet = np.max(bets)
@@ -428,7 +410,7 @@ for i in range(LEN_ROUNDS_KEY):
             hand_id = idpokerhand(hand_poker)
             hand_point = np.sum(hand_highest[0] * CARDS_RANKED)
 
-            information = np.array([j + 1, indexes[0], indexes[1], hand_id, hand_point])
+            information = np.array([j, indexes[0], indexes[1], hand_id, hand_point])
             data = np.append(data, information)
 
             print(f"poker hand[{j}]\t:{hand_poker}")
@@ -445,33 +427,19 @@ for i in range(LEN_ROUNDS_KEY):
 
             print()
 
-        # remaining_players = PLAYERS[PLAYERS_ACTIVE]
-        # remaining_poker_hands = poker_hands[PLAYERS_ACTIVE]
-
-        # min_remaining_hands = np.min(remaining_poker_hands)
-
-        # winner = remaining_poker_hands[remaining_poker_hands == min_remaining_hands]
-
-        # print(remaining_poker_hands)
-        # print(remaining_players)
-        # print(winner)
-
         data = data.reshape([players, 5])
         dataframe = pd.DataFrame(
             data,
             columns=["player", "indexes[0]", "indexes[1]", "hand_id", "hand_point"],
-            index=[
-                "player_1",
-                "player_2",
-                "player_3",
-                "player_4",
-                "player_5",
-                "player_6",
-            ],
         )
+        dataframe = dataframe.sort_values(
+            ["hand_id", "indexes[1]", "indexes[0]", "hand_point"], ignore_index=True
+        )
+        dataframe = dataframe[dataframe["player"].isin(PLAYERS[PLAYERS_ACTIVE])]
+        dataframe = dataframe[-1:]
 
-        print(dataframe.sort_values(["hand_id", "indexes[1]", "indexes[0]"]))
-        print()
+        winner = dataframe.iloc[0]["player"]
+        hand = dataframe.iloc[0]["hand_id"]
 
     print("~" * 90)
     print()
@@ -481,8 +449,7 @@ print(f"winner\t\t:{winner}")
 print(f"pots\t\t:{pots}")
 print(f"active players\t:{PLAYERS_ACTIVE}")
 print(f"all in players\t:{PLAYERS_ALL_IN}")
-# print(f"players hands\t:{[POKER_HANDS[i] for i in poker_hands]}")
-# print(f"winner hand\t:{POKER_HANDS[min_remaining_hands]}")
+print(f"winner hand\t:{POKER_HANDS[hand]}")
 
 print()
 print("=" * 90)
