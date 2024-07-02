@@ -1,18 +1,16 @@
-import collections
 import numpy as np
 import pandas as pd
 import random
-import time
 
 MIN_PLAYERS = 2
 MAX_PLAYERS = 10
-players = (MIN_PLAYERS + MAX_PLAYERS) // 2
+SUM_PLAYERS = (MIN_PLAYERS + MAX_PLAYERS) // 2
 
-PLAYERS = np.arange(players, dtype=int)
-PLAYERS_ACTIVE = np.ones(players, dtype=bool)
-PLAYERS_ALL_IN = np.zeros(players, dtype=bool)
+PLAYERS = np.arange(SUM_PLAYERS, dtype=int)
+PLAYERS_ACTIVE = np.ones(SUM_PLAYERS, dtype=bool)
+PLAYERS_ALL_IN = np.zeros(SUM_PLAYERS, dtype=bool)
 
-BUTTON = random.randint(0, players - 1)
+BUTTON = random.randint(0, SUM_PLAYERS - 1)
 
 MIN_BET = 40
 
@@ -28,7 +26,7 @@ LEN_NUMBERS = len(NUMBERS)
 
 CARDS_COUNTER = np.ones((LEN_SUITS, LEN_NUMBERS), dtype=int)
 CARDS_COMMUNITY = np.zeros((LEN_SUITS, LEN_NUMBERS), dtype=int)
-CARDS_HOLE = np.zeros((players, LEN_SUITS, LEN_NUMBERS), dtype=int)
+CARDS_HOLE = np.zeros((SUM_PLAYERS, LEN_SUITS, LEN_NUMBERS), dtype=int)
 CARDS_RANKED = np.arange(LEN_NUMBERS, dtype=int) + 1
 SUM_CARDS_COMMUNITY = 3
 SUM_CARDS_HOLE = 2
@@ -84,7 +82,10 @@ def getpokerhand(cards):
         sum_sequential = 0
 
         for i in range(LEN_NUMBERS - 1):
-            if sum_numbers[i] != 0 and sum_numbers[i + 1] != 0:
+            j = (i + 12) % LEN_NUMBERS
+            k = (i + 13) % LEN_NUMBERS
+
+            if sum_numbers[j] != 0 and sum_numbers[k] != 0:
                 sum_sequential += 1
             else:
                 sum_sequential = 0
@@ -144,9 +145,12 @@ def getpokerhand(cards):
         sum_sequential = 0
 
         for i in range(1, LEN_NUMBERS - 1):
-            if sum_numbers[i - 1] != 0 and sum_numbers[i] != 0:
+            j = (i + 12) % LEN_NUMBERS
+            k = (i + 13) % LEN_NUMBERS
+
+            if sum_numbers[j] != 0 and sum_numbers[k] != 0:
                 sum_sequential += 1
-                index = i
+                index = k
             else:
                 sum_sequential = 0
                 index = -1
@@ -223,12 +227,12 @@ print("~" * 90)
 print()
 
 for i in range(LEN_ROUNDS_KEY):
-    bets = np.zeros(players, dtype=int)
-    actions_counter = np.zeros(players, dtype=int)
+    bets = np.zeros(SUM_PLAYERS, dtype=int)
+    actions_counter = np.zeros(SUM_PLAYERS, dtype=int)
 
-    button = (BUTTON + i) % players
-    blind_small = (button + 1) % players
-    blind_big = (button + 2) % players
+    button = (BUTTON + i) % SUM_PLAYERS
+    blind_small = (button + 1) % SUM_PLAYERS
+    blind_big = (button + 2) % SUM_PLAYERS
 
     if ROUNDS_KEY[i] == "PRE_FLOP":
         winner = None
@@ -238,11 +242,11 @@ for i in range(LEN_ROUNDS_KEY):
         bets[blind_small] += MIN_BET // 2
         bets[blind_big] += MIN_BET
 
-        stacks = np.ones(players, dtype=int) * MIN_BET * 100
+        stacks = np.ones(SUM_PLAYERS, dtype=int) * MIN_BET * 100
         stacks[blind_small] -= MIN_BET // 2
         stacks[blind_big] -= MIN_BET
 
-        for j in range(players):
+        for j in range(SUM_PLAYERS):
             getcards(CARDS_HOLE[j], SUM_CARDS_HOLE)
 
     elif ROUNDS_KEY[i] == "FLOP":
@@ -261,7 +265,7 @@ for i in range(LEN_ROUNDS_KEY):
     sum_bet = np.sum(bets)
 
     print(
-        f"information\t:round:\033[34m{ROUNDS_KEY[i]}\033[0m, players:\033[32m{players}\033[0m, button:\033[32m{button}\033[0m, small blind:\033[32m{blind_small}\033[0m, big blind:\033[32m{blind_big}\033[0m"
+        f"information\t:round:\033[34m{ROUNDS_KEY[i]}\033[0m, sum players:\033[32m{SUM_PLAYERS}\033[0m, button:\033[32m{button}\033[0m, small blind:\033[32m{blind_small}\033[0m, big blind:\033[32m{blind_big}\033[0m"
     )
     np.set_printoptions(formatter={"int": lambda x: f"${x}"})
     print(f"pots\t\t:{pots}")
@@ -276,7 +280,7 @@ for i in range(LEN_ROUNDS_KEY):
     print()
 
     if ROUNDS_KEY[i] == "PRE_FLOP":
-        for j in range(players):
+        for j in range(SUM_PLAYERS):
             for k in range(LEN_SUITS):
                 if k == 0:
                     print(f"hole cards[{j}]\t:{CARDS_HOLE[j, 0]}")
@@ -298,8 +302,8 @@ for i in range(LEN_ROUNDS_KEY):
     print()
 
     while ROUNDS_VALUE[i]:
-        for j in range(players):
-            player = (j + button + 3) % players
+        for j in range(SUM_PLAYERS):
+            player = (j + button + 3) % SUM_PLAYERS
 
             betting_options = np.empty(0, dtype=str)
             betting_options = np.append(betting_options, "FOLD")
@@ -403,14 +407,16 @@ for i in range(LEN_ROUNDS_KEY):
 
         data = np.empty(0, dtype=int)
 
-        for j in range(players):
+        for j in range(SUM_PLAYERS):
             indexes, hand_poker = getpokerhand(CARDS_HOLE[j])
             hand_highest = gethighesthand(CARDS_HOLE[j], indexes, hand_poker)
 
             hand_id = idpokerhand(hand_poker)
             hand_point = np.sum(hand_highest[0] * CARDS_RANKED)
 
-            information = np.array([j, indexes[0], indexes[1], hand_id, hand_point])
+            information = np.array(
+                [j, PLAYERS_ACTIVE[j], indexes[0], indexes[1], hand_id, hand_point]
+            )
             data = np.append(data, information)
 
             print(f"poker hand[{j}]\t:{hand_poker}")
@@ -426,16 +432,29 @@ for i in range(LEN_ROUNDS_KEY):
                     print(f"\t\t:{CARDS_HOLE[j, k]}")
 
             print()
+            print("-" * 90)
+            print()
 
-        data = data.reshape([players, 5])
+        data = data.reshape([SUM_PLAYERS, 6])
         dataframe = pd.DataFrame(
             data,
-            columns=["player", "indexes[0]", "indexes[1]", "hand_id", "hand_point"],
+            columns=[
+                "player",
+                "active player",
+                "indexes[0]",
+                "indexes[1]",
+                "hand_id",
+                "hand_point",
+            ],
         )
+
+        print(dataframe)
+        print()
+
         dataframe = dataframe.sort_values(
             ["hand_id", "indexes[1]", "indexes[0]", "hand_point"], ignore_index=True
         )
-        dataframe = dataframe[dataframe["player"].isin(PLAYERS[PLAYERS_ACTIVE])]
+        dataframe = dataframe[dataframe["active player"] == 1]
         dataframe = dataframe[-1:]
 
         winner = dataframe.iloc[0]["player"]
