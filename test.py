@@ -9,7 +9,7 @@ BUTTON = random.randint(0, PLAYERS - 1)
 
 print(BUTTON)
 
-CARDS = np.array([1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1])
+CARDS = np.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1])
 
 NUMBERS = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A")
 LEN_NUMBERS = len(NUMBERS)
